@@ -1,0 +1,44 @@
+
+buildscript {
+    ext.kotlin_version = '1.1.1'
+
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+
+apply plugin: 'idea'
+apply plugin: 'kotlin'
+
+version 'unspecified'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+        url  "https://dl.bintray.com/wasabifx/wasabifx"
+    }
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    //Fill this in with the version of kotlinx in use in your project
+    def kotlinx_html_version = "0.5.11"
+    // include for server side
+    compile "org.jetbrains.kotlinx:kotlinx.html.jvm:${kotlinx_html_version}"
+    // include for client-side
+    //compileClient "org.jetbrains.kotlinx:kotlinx.html.js:${kotlinx_html_version}"
+    compile "io.vertx:vertx-web:3.3.3"
+    compile 'azagroup.kotlin:aza-kotlin-css:1.0'
+}
+
+sourceSets {
+    main.kotlin.srcDirs += 'src/'
+    main.java.srcDirs += 'src/'
+}
+
