@@ -20,6 +20,7 @@ import net.q1cc.stefan.webFramework.ext.html
 import net.q1cc.stefan.webFramework.ext.send
 import net.q1cc.stefan.webFramework.forms.*
 import net.q1cc.stefan.webFramework.mvp.*
+import net.q1cc.stefan.webFramework.preseed.ISessionData
 import net.q1cc.stefan.webFramework.staticContent.CSS
 import java.io.File
 import java.util.*
@@ -100,6 +101,8 @@ class WebFramework<TSessionData : Any>(
         // TODO: json via https://github.com/cbeust/klaxon
         val lambda: RoutingContext.() -> Unit = {
             val sessionData = sessions[this]
+            if (sessionData is ISessionData<*>)
+                sessionData.onRequest(this)
             val requestModel = parseRequestModel(this)
             if (requestModel!=null) {
                 handleRequestModelAsForm(requestModel, request(), sessionData)
@@ -134,6 +137,8 @@ class WebFramework<TSessionData : Any>(
         ) {
             val lambda: RoutingContext.() -> Unit = {
                 val sessionData = sessions[this]
+                if (sessionData is ISessionData<*>)
+                    sessionData.onRequest(this)
                 val requestModel = parseRequestModel(this)
                 if (requestModel!=null) {
                     handleRequestModelAsForm(requestModel, request(), sessionData)

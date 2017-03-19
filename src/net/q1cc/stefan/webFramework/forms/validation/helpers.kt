@@ -10,6 +10,11 @@ fun <T> verify(validateFun: ValidationRule<T>.(T) -> Boolean, errorMessage: Stri
     }
 }
 
+fun verifyEmail( errorMessage: String ) = verify<String>({
+    val emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$".toRegex()
+    it.matches(emailRegex)
+},errorMessage)
+
 fun Any.getValidationRules() = getGetters<ValidationRule<*>>()
 fun Any.getHiddenFields() = getGetters<HiddenField<*>>()
 fun Any.getRuleLists() = getGetters<ValidationRuleMap<*>>()
