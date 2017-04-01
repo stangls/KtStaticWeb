@@ -4,6 +4,7 @@ import azagroup.kotlin.css.Stylesheet
 import io.vertx.core.Vertx
 import io.vertx.core.http.HttpServer
 import io.vertx.core.http.HttpServerOptions
+import io.vertx.core.http.HttpServerRequest
 import io.vertx.ext.web.Route
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
@@ -88,6 +89,14 @@ class WebFramework<TSessionData : Any>(
         }
     }
 
+    private fun getSessionData(ctx:RoutingContext): TSessionData {
+        val sessionData = sessions[ctx]
+        if (sessionData is ISessionData<*>)
+            sessionData.onRequest(ctx)
+        return sessionData
+    }
+    private fun  prepareRequest(ctx:RoutingContext) = getSessionData(ctx).to(parseRequestModel(ctx))
+
     fun present(
         path: String,
         view: IHtmlView<Unit,TSessionData>
@@ -100,19 +109,17 @@ class WebFramework<TSessionData : Any>(
     ) {
         // TODO: json via https://github.com/cbeust/klaxon
         val lambda: RoutingContext.() -> Unit = {
-            val sessionData = sessions[this]
-            if (sessionData is ISessionData<*>)
-                sessionData.onRequest(this)
-            val requestModel = parseRequestModel(this)
-            if (requestModel!=null) {
-                handleRequestModelAsForm(requestModel, request(), sessionData)
-                callRequestModelMethod(model, requestModel, request(), sessionData)
-            }
+            val (sessionData,requestModel) = prepareRequest(this)
+            handleRequestModel(requestModel,request(),sessionData,model)
             renderHtml(view, model.process(request(), sessionData),sessionData)()
-            FormRegistry.cleanup()
+            finishRequest()
         }
         getAndPost(lambda, path)
         // TODO: think about calling addStyleSheet(view.getIncludedCSS()) safely. - or at least when registering
+    }
+
+    private fun finishRequest() {
+        FormRegistry.cleanup()
     }
 
     private fun getAndPost(lambda: RoutingContext.() -> Unit, path: String) {
@@ -136,26 +143,29 @@ class WebFramework<TSessionData : Any>(
             view: IHtmlView<IData, TSessionData>
         ) {
             val lambda: RoutingContext.() -> Unit = {
-                val sessionData = sessions[this]
-                if (sessionData is ISessionData<*>)
-                    sessionData.onRequest(this)
-                val requestModel = parseRequestModel(this)
-                if (requestModel!=null) {
-                    handleRequestModelAsForm(requestModel, request(), sessionData)
-                    callRequestModelMethod(mOuter, requestModel, request(), sessionData)
-                    callRequestModelMethod(model, requestModel, request(), sessionData)
-                }
+                val (sessionData,requestModel) = prepareRequest(this)
+                handleRequestModel(requestModel,request(),sessionData,mOuter,model)
                 // processing & rendering
                 renderHtml(
                     combineViews(containerView,view),
                     mOuter.process(request(), sessionData).to(model.process(request(), sessionData)),
                     sessionData
                 )()
-                // cleanup
-                FormRegistry.cleanup()
+                finishRequest()
             }
             getAndPost(lambda, outerPath.removeSuffix("/")+"/"+path.removePrefix("/"))
             // TODO: think about calling addStyleSheet(view.getIncludedCSS()) safely. - or at least when registering
+        }
+    }
+
+    private fun handleRequestModel(requestModel: Any?, request: HttpServerRequest, sessionData: TSessionData, vararg targets : Any) {
+        if (requestModel==null) return
+        var handled = handleRequestModelAsForm(requestModel, request, sessionData)
+        targets.forEach {
+            handled = handled or callRequestModelMethod(it, requestModel, request, sessionData)
+        }
+        if (!handled){
+            System.err.println("Neither form ${requestModel.javaClass.simpleName}, ${mOuter.javaClass.simpleName} nor ${model.javaClass.simpleName} handled ${requestModel.javaClass.simpleName}}")
         }
     }
 
@@ -183,3 +193,5 @@ class WebFramework<TSessionData : Any>(
 
 }
 
+fun <T> minimalWebFramework( x : WebFramework<Unit>.() -> T) =
+        with(WebFramework(sessionDataGenerator = { Unit }),x)

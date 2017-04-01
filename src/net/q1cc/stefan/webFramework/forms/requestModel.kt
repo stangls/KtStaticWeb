@@ -83,7 +83,7 @@ fun parseRequestModel(context: RoutingContext) : Any? {
     return null
 }
 
-fun <TSessionData : Any> callRequestModelMethod(model: Any, instance: Any, request: HttpServerRequest, sessionData: TSessionData) {
+fun <TSessionData : Any> callRequestModelMethod(model: Any, instance: Any, request: HttpServerRequest, sessionData: TSessionData): Boolean {
 
     try {
 
@@ -121,29 +121,32 @@ fun <TSessionData : Any> callRequestModelMethod(model: Any, instance: Any, reque
 
         val method = methods.firstOrNull()
         if (method == null) {
-            println("WARNING: the contents of ${instance.javaClass} seem lost in ${model.javaClass} (no appropriate method defined)")
-            return
+            return false
         }
         when(method.parameterCount) {
             1 -> method.invoke(model, instance)
             2 -> method.invoke(model, instance, sessionData)
             3 -> method.invoke(model, instance, request, sessionData)
         }
+        return true
 
     }catch(e:InvocationTargetException){
         throw e.targetException
+        return true
     }catch(e:Exception){
         e.printStackTrace()
+        return false
     }
 
 }
 
-fun <TSessionData : Any> handleRequestModelAsForm(requestModel: Any, request: HttpServerRequest, sessionData: TSessionData) {
+fun <TSessionData : Any> handleRequestModelAsForm(requestModel: Any, request: HttpServerRequest, sessionData: TSessionData): Boolean {
     if (requestModel is Form<*>) {
         FormRegistry.set(requestModel)
         val rH = requestModel.requestHandler
         if (rH != null) {
-            callRequestModelMethod(rH, requestModel, request, sessionData)
+            return callRequestModelMethod(rH, requestModel, request, sessionData)
         }
     }
+    return false
 }

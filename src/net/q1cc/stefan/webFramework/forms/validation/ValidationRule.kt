@@ -10,7 +10,7 @@ import java.util.*
  * Created by stefan on 12.11.16.
  */
 open class ValidationRule<T>(
-        open val defaultValue : String,
+        open var defaultValue : String,
         open val validateFun: ValidationRule<T>.(T) -> ValidationResult,
         open val castFun: (Any?)->T = { it as T }
 ) {
