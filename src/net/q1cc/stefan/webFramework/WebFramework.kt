@@ -165,7 +165,12 @@ class WebFramework<TSessionData : Any>(
             handled = handled or callRequestModelMethod(it, requestModel, request, sessionData)
         }
         if (!handled){
-            System.err.println("Neither form ${requestModel.javaClass.simpleName}, ${mOuter.javaClass.simpleName} nor ${model.javaClass.simpleName} handled ${requestModel.javaClass.simpleName}}")
+            if (targets.isNotEmpty()) {
+                val joined = targets.joinToString { it.javaClass.simpleName }
+                System.err.println("Neither $joined nor form ${requestModel.javaClass.simpleName} handled ${requestModel.javaClass.simpleName}}")
+            }else{
+                System.err.println("The form ${requestModel.javaClass.simpleName} did not handle ${requestModel.javaClass.simpleName}}")
+            }
         }
     }
 
